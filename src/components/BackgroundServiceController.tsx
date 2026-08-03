@@ -224,44 +224,42 @@ export const BackgroundServiceController: React.FC<BackgroundServiceControllerPr
       <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 text-xs space-y-3 text-indigo-950">
         <div className="flex items-center justify-between border-b border-indigo-200 pb-2">
           <h4 className="font-bold text-indigo-900 flex items-center gap-2 text-sm">
-            📱 راهنمای کامل خروجی APK اندروید و کارکرد ۱۰۰٪ آفلاین
+            📱 نوتیفیکیشن ماندگار و حباب شناور در خروجی APK اندروید
           </h4>
           <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
-            ⚡ پردازش ۱۰۰٪ آفلاین (بدون اینترنت)
+            🔔 نوتیفیکیشن فعال و زنده
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-slate-700 leading-relaxed">
           <div className="bg-white p-3 rounded-xl border border-indigo-100 space-y-1.5">
             <h5 className="font-bold text-indigo-900 flex items-center gap-1.5">
-              <span>🌐</span> آیا برنامه به اینترنت نیاز دارد؟
+              <span>🔔</span> نوتیفیکیشن ماندگار (Ongoing Notification)
             </h5>
             <p className="text-[11px] text-slate-600">
-              <strong>خیر!</strong> مدل هوش مصنوعی تشخیص دست MediaPipe به‌صورت <strong>محلی (On-Device AI)</strong> روی تراشه گوشی اجرا می‌شود. پس از دانلود اولیه مدل، هیچ داده یا تصویر دوربینی به اینترنت ارسال نمی‌شود و برنامه کاملاً آفلاین کار می‌کند.
+              در نسخه نصب‌شده APK، یک نوتیفیکیشن دائمی با عنوان <strong>«✋ کنترل حرکتی دست فعال است»</strong> در نوار اعلان‌ها بالای گوشی سنجاق می‌شود. این اعلان از بسته شدن برنامه توسط سیستم‌عامل جلوگیری می‌کند.
             </p>
           </div>
 
           <div className="bg-white p-3 rounded-xl border border-indigo-100 space-y-1.5">
             <h5 className="font-bold text-indigo-900 flex items-center gap-1.5">
-              <span>🤖</span> چرا در مرورگر موقع رفتن به اینستاگرام متوقف می‌شود؟
+              <span>🖼️</span> پنجره شناور روی اینستاگرام (Auto Overlay / PiP)
             </h5>
             <p className="text-[11px] text-slate-600">
-              سیستم‌عامل اندروید به دلایل امنیتی وقتی از مرورگر وب (Chrome/Firefox) خارج می‌شوید، دوربین مرورگر را قطع می‌کند. برای کارکرد روی اینستاگرام، باید <strong>فایل APK اندروید</strong> نصب شود یا از <strong>حباب شناور (PiP)</strong> استفاده کنید.
+              با افزودن <code className="bg-slate-100 px-1 py-0.5 rounded">smallestScreenSize</code> و تنظیمات پیشرفته Picture-in-Picture، هنگام خارج شدن از برنامه و رفتن به اینستاگرام، کادر تصویر شناور کوچک باقی می‌ماند و برنامه بسته یا متوقف نمی‌شود.
             </p>
           </div>
         </div>
 
         <div className="bg-white p-3 rounded-xl border border-indigo-200 space-y-2">
           <h5 className="font-bold text-slate-900 flex items-center gap-2 text-xs">
-            🛠️ مراحل ساخت خروجی APK اندروید با Capacitor / Android Studio:
+            🛠️ مجوزهای لازم در گوشی پس از نصب APK:
           </h5>
-          <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-700">
-            <li>فایل‌های پروژه را از منوی بالای صفحه دانلود کنید (<code className="bg-slate-100 text-slate-800 px-1 py-0.5 rounded font-mono">Export Project</code>).</li>
-            <li>پوشه <code className="bg-indigo-50 text-indigo-800 px-1 py-0.5 rounded font-mono">android</code> از قبل آماده شده شامل مجوزهای <code className="bg-indigo-50 text-indigo-800 px-1 py-0.5 rounded font-mono">FOREGROUND_SERVICE_CAMERA</code> و <code className="bg-indigo-50 text-indigo-800 px-1 py-0.5 rounded font-mono">SYSTEM_ALERT_WINDOW</code> است.</li>
-            <li>در ترمینال سیستم خود دستور <code className="bg-slate-100 text-slate-800 px-1 py-0.5 rounded font-mono">npx cap sync android</code> و سپس <code className="bg-slate-100 text-slate-800 px-1 py-0.5 rounded font-mono">npx cap open android</code> را بزنید.</li>
-            <li>در اندروید استودیو خروجی <strong className="text-indigo-900">Build APK</strong> بگیرید و روی گوشی نصب کنید.</li>
-            <li>در تنظیمات گوشی به برنامه دو دسترسی دهید: <strong>۱. نمایش روی سایر برنامه‌ها (Draw over apps)</strong> و <strong>۲. سرویس دسترسی‌پذیری (Accessibility Service)</strong>.</li>
-          </ol>
+          <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-700 pr-1">
+            <li><strong>۱. مجوز ارسال نوتیفیکیشن (Post Notifications):</strong> موقع اولین اجرا روی به برنامه اجازه اعلان دهید تا نوتیفیکیشن زنده نمایش داده شود.</li>
+            <li><strong>۲. نمایش روی سایر برنامه‌ها (Draw over other apps / Picture-in-Picture):</strong> در تنظیمات گوشی بخش برنامه‌ها، به Remix Gesture Controller اجازه «نمایش روی سایر برنامه‌ها» را بدهید.</li>
+            <li><strong>۳. سرویس دسترسی‌پذیری (Accessibility Service):</strong> برای اجرای لمس و اسکرول روی اینستاگرام، سرویس دسترسی‌پذیری برنامه را روشن کنید.</li>
+          </ul>
         </div>
       </div>
 

@@ -14,6 +14,13 @@ class MainActivity : BridgeActivity() {
         super.onCreate(savedInstanceState)
         startGestureForegroundService()
 
+        // Request Notification permission on Android 13+ (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
         // Configure WebView settings to allow background camera and video playback
         bridge?.webView?.settings?.apply {
             mediaPlaybackRequiresUserGesture = false
@@ -34,6 +41,15 @@ class MainActivity : BridgeActivity() {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration?) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            // Keep WebView active during Picture-in-Picture mode
+            bridge?.webView?.onResume()
+            bridge?.webView?.resumeTimers()
         }
     }
 

@@ -45,10 +45,11 @@ class GestureForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Gesture Controller Service",
-                NotificationManager.IMPORTANCE_LOW
+                "سرویس کنترل حرکتی پس‌زمینه",
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Keeps Gesture Recognition Camera Active in Background"
+                description = "سرویس فعال نگه‌داشتن دوربین و تشخیص دستورات حرکتی در پس‌زمینه"
+                setShowBadge(true)
             }
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
@@ -71,11 +72,12 @@ class GestureForegroundService : Service() {
         }
 
         return builder
-            .setContentTitle("Remix Gesture Controller Active")
-            .setContentText("سرویس رصد دوربین در پس‌زمینه زنده است")
+            .setContentTitle("✋ کنترل حرکتی دست فعال است")
+            .setContentText("برنامه در پس‌زمینه آماده دریافت دستورات حرکتی است")
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
+            .setPriority(Notification.PRIORITY_HIGH)
             .build()
     }
 }
