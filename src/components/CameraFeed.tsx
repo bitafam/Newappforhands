@@ -122,10 +122,24 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
 
   useEffect(() => {
     startCamera();
+
+    const handleVisibilityChange = async () => {
+      if (document.hidden && videoRef.current && isCameraActive && document.pictureInPictureEnabled && !document.pictureInPictureElement) {
+        try {
+          await videoRef.current.requestPictureInPicture();
+        } catch (e) {
+          console.warn('Auto PiP on background exit error:', e);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       stopCamera();
     };
-  }, [facingMode, startCamera, stopCamera]);
+  }, [facingMode, isCameraActive, startCamera, stopCamera]);
 
   const lastStateUpdateRef = useRef<number>(0);
   const recentGesturesRef = useRef<GestureType[]>([]);
