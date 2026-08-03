@@ -107,6 +107,61 @@ export async function requestRealCameraPermission(): Promise<boolean> {
 }
 
 /**
+ * Launch Instagram App via URI scheme or Web URL fallback
+ */
+export function launchInstagramApp(): void {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    // Attempt deep link schema for Instagram
+    window.location.href = 'instagram://app';
+    
+    // Fallback timer if app is not installed
+    setTimeout(() => {
+      window.open('https://www.instagram.com', '_blank');
+    }, 1200);
+  } catch (e) {
+    window.open('https://www.instagram.com', '_blank');
+  }
+}
+
+let activeTorchStream: MediaStream | null = null;
+
+/**
+ * Toggle Torch/Flashlight using WebRTC Video Track Constraints
+ */
+export async function toggleTorchFlashlight(forceState?: boolean): Promise<boolean> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices) return false;
+
+  try {
+    if (!activeTorchStream) {
+      activeTorchStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+    }
+
+    const videoTrack = activeTorchStream.getVideoTracks()[0];
+    if (!videoTrack) return false;
+
+    // Check capabilities for torch
+    const capabilities = (videoTrack.getCapabilities ? videoTrack.getCapabilities() : {}) as { torch?: boolean };
+    
+    // Determine target state
+    const currentState = Boolean((videoTrack.getSettings() as { torch?: boolean }).torch);
+    const newState = forceState !== undefined ? forceState : !currentState;
+
+    await (videoTrack as unknown as { applyConstraints: (c: unknown) => Promise<void> }).applyConstraints({
+      advanced: [{ torch: newState }]
+    });
+
+    return newState;
+  } catch (err) {
+    console.warn('Torch toggle not supported on this browser/sensor:', err);
+    return false;
+  }
+}
+
+/**
  * Open Android System Settings pages using Android Intent URLs or web fallback
  */
 export function openAndroidSystemSettings(permissionKey: keyof AndroidPermissions): void {
@@ -129,8 +184,8 @@ export function openAndroidSystemSettings(permissionKey: keyof AndroidPermission
       // Attempt to launch intent URL directly in APK container
       window.location.href = targetIntent;
     } else {
-      // Browser fallback warning
-      console.info(`Opening settings helper for ${permissionKey}`);
+      // Open app info or show notification
+      window.open('chrome://settings', '_blank');
     }
   } catch (err) {
     console.warn('Failed to launch native settings intent:', err);

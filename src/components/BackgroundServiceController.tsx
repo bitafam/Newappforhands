@@ -1,7 +1,22 @@
-import React, { useState } from 'react';
-import { Play, Pause, Smartphone, CheckCircle2, ArrowDown, Camera, Bell, Activity, Radio } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Play,
+  Pause,
+  Smartphone,
+  CheckCircle2,
+  ArrowDown,
+  Camera,
+  Bell,
+  Activity,
+  Radio,
+  ExternalLink,
+  Zap,
+  Sparkles,
+  Volume2
+} from 'lucide-react';
 import { AndroidPermissions, BackgroundServiceState, CapturedScreenshot, GestureType } from '../types';
 import { soundFx } from '../utils/audio';
+import { launchInstagramApp, toggleTorchFlashlight } from '../utils/androidPermissions';
 
 interface BackgroundServiceControllerProps {
   permissions: AndroidPermissions;
@@ -27,6 +42,36 @@ export const BackgroundServiceController: React.FC<BackgroundServiceControllerPr
   const [selectedApp, setSelectedApp] = useState<string>('Instagram (اینستاگرام)');
   const [simulatedScrollPos, setSimulatedScrollPos] = useState(0);
   const [overlayFeedback, setOverlayFeedback] = useState<string | null>(null);
+  const [isTorchOn, setIsTorchOn] = useState(false);
+  const [wakeLockActive, setWakeLockActive] = useState(false);
+
+  // Request Screen Wake Lock when service is running to prevent device sleep
+  useEffect(() => {
+    let wakeLock: unknown = null;
+
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator && serviceState.isRunning) {
+        try {
+          wakeLock = await (navigator as unknown as { wakeLock: { request: (type: string) => Promise<unknown> } }).wakeLock.request('screen');
+          setWakeLockActive(true);
+        } catch (e) {
+          console.warn('Wake lock error:', e);
+        }
+      }
+    }
+
+    if (serviceState.isRunning) {
+      requestWakeLock();
+    } else {
+      setWakeLockActive(false);
+    }
+
+    return () => {
+      if (wakeLock && typeof (wakeLock as { release?: () => void }).release === 'function') {
+        (wakeLock as { release: () => void }).release();
+      }
+    };
+  }, [serviceState.isRunning]);
 
   const toggleService = () => {
     setServiceState((prev) => {
@@ -37,6 +82,19 @@ export const BackgroundServiceController: React.FC<BackgroundServiceControllerPr
       }
       return { ...prev, isRunning: nextState };
     });
+  };
+
+  const handleLaunchInstagram = () => {
+    showOverlayToast('🚀 در حال باز کردن برنامه اینستاگرام...');
+    if (vibrationEnabled) soundFx.vibrate(50);
+    launchInstagramApp();
+  };
+
+  const handleToggleTorch = async () => {
+    const newState = await toggleTorchFlashlight();
+    setIsTorchOn(newState);
+    showOverlayToast(newState ? '🔦 چراغ‌قوه روشن شد!' : '🔦 چراغ‌قوه خاموش شد!');
+    if (vibrationEnabled) soundFx.vibrate([30, 30]);
   };
 
   const appOptions = [
@@ -92,32 +150,95 @@ export const BackgroundServiceController: React.FC<BackgroundServiceControllerPr
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-slate-900">
-                  وضعیت سرویس پس‌زمینه (Background Foreground Service)
+                  سرویس پس‌زمینه و حباب شناور (Foreground Service)
                 </h2>
                 <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${
                   serviceState.isRunning ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
                 }`}>
-                  {serviceState.isRunning ? 'فعال و در حال اجرا' : 'غیرفعال'}
+                  {serviceState.isRunning ? 'فعال و زنده' : 'غیرفعال'}
                 </span>
+
+                {wakeLockActive && (
+                  <span className="text-[10px] bg-indigo-100 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded-full font-medium hidden sm:inline">
+                    جلوگیری از خواب سیستم (Wake Lock)
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-600 mt-1">
-                برنامه حتی در صورت بستن فریم مرورگر یا باز کردن اینستاگرام، با سنسور دوربین حرکات دست را رصد می‌کند.
+                برنامه حتی در صورت خروج از محیط وب یا باز کردن اینستاگرام، سنسور دوربین را بیدار نگه می‌دارد.
               </p>
             </div>
           </div>
 
-          <button
-            onClick={toggleService}
-            className={`px-6 py-3 rounded-xl font-bold text-xs shadow-md transition flex items-center gap-2 ${
-              serviceState.isRunning
-                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
-            }`}
-          >
-            {serviceState.isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            {serviceState.isRunning ? 'خاموش کردن سرویس پس‌زمینه' : 'روشن کردن سرویس پس‌زمینه'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleLaunchInstagram}
+              className="px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2"
+            >
+              <ExternalLink className="w-4 h-4" />
+              باز کردن مستقیم اینستاگرام
+            </button>
+
+            <button
+              onClick={toggleService}
+              className={`px-5 py-3 rounded-xl font-bold text-xs shadow-md transition flex items-center gap-2 ${
+                serviceState.isRunning
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+              }`}
+            >
+              {serviceState.isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              {serviceState.isRunning ? 'خاموش کردن سرویس' : 'روشن کردن سرویس'}
+            </button>
+          </div>
         </div>
+      </div>
+
+      {/* Action Shortcut Quick Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <button
+          onClick={handleLaunchInstagram}
+          className="p-4 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-pink-900 text-white border border-purple-700/50 shadow-md flex items-center justify-between text-right hover:scale-[1.01] transition"
+        >
+          <div className="space-y-0.5">
+            <h4 className="text-xs font-bold text-pink-300 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-pink-400" />
+              اجرا با چرخاندن/اشاره انگشت
+            </h4>
+            <p className="text-[11px] text-purple-200">باز کردن مستقیم اینستاگرام 📸</p>
+          </div>
+          <span className="text-2xl">👆</span>
+        </button>
+
+        <button
+          onClick={handleToggleTorch}
+          className="p-4 rounded-2xl bg-gradient-to-r from-amber-900 via-slate-900 to-yellow-900 text-white border border-amber-700/50 shadow-md flex items-center justify-between text-right hover:scale-[1.01] transition"
+        >
+          <div className="space-y-0.5">
+            <h4 className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-amber-400" />
+              چراغ‌قوه با علامت V ✌️
+            </h4>
+            <p className="text-[11px] text-amber-200">
+              {isTorchOn ? 'خاموش کردن چراغ‌قوه' : 'روشن کردن چراغ‌قوه'}
+            </p>
+          </div>
+          <span className="text-2xl">✌️</span>
+        </button>
+
+        <button
+          onClick={triggerManualScreenshot}
+          className="p-4 rounded-2xl bg-gradient-to-r from-rose-900 via-slate-900 to-red-900 text-white border border-rose-700/50 shadow-md flex items-center justify-between text-right hover:scale-[1.01] transition"
+        >
+          <div className="space-y-0.5">
+            <h4 className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+              <Camera className="w-4 h-4 text-rose-400" />
+              اسکرین‌شات با مشت ✊
+            </h4>
+            <p className="text-[11px] text-rose-200">ثبت تصویر از صفحه فعلی</p>
+          </div>
+          <span className="text-2xl">✊</span>
+        </button>
       </div>
 
       {/* Persistent Android Background Notification Preview */}
@@ -139,7 +260,7 @@ export const BackgroundServiceController: React.FC<BackgroundServiceControllerPr
               <div>
                 <h4 className="text-xs font-bold text-slate-900">کنترل حرکتی دست اندروید در حال اجرا است</h4>
                 <p className="text-[11px] text-slate-600">
-                  در حال تعقیب حرکات مشت (اسکرین‌شات) و پینچ (اسکرول) روی برنامه: <strong className="text-indigo-700">{selectedApp}</strong>
+                  در حال تعقیب حرکات ✊ (مشت)، 👆 (اشاره/اینستاگرام) و ✌️ (چراغ‌قوه) روی: <strong className="text-indigo-700">{selectedApp}</strong>
                 </p>
               </div>
             </div>
@@ -226,7 +347,7 @@ export const BackgroundServiceController: React.FC<BackgroundServiceControllerPr
             </div>
 
             <p className="text-xs text-slate-700 leading-relaxed">
-              هنگامی که اینستاگرام را در گوشی خود باز کنید، سرویس پس‌زمینه در بالای صفحه یک حباب شناور کوچک نمایش داده و آماده دریافت حرکات ✊ (مشت) و 🤏 (پینچ) خواهد بود.
+              هنگامی که اینستاگرام را در گوشی خود باز کنید، سرویس پس‌زمینه در بالای صفحه یک حباب شناور کوچک نمایش داده و آماده دریافت حرکات ✊ (مشت)، 👆 (چرخاندن/اشاره) و ✌️ (چراغ‌قوه) خواهد بود.
             </p>
 
             <div className="pt-2 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100">

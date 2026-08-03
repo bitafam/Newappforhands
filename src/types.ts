@@ -16,6 +16,7 @@ export type ActionType =
   | 'BACK' 
   | 'HOME' 
   | 'TOGGLE_TORCH' 
+  | 'OPEN_INSTAGRAM'
   | 'NONE';
 
 export interface LandmarkPoint {

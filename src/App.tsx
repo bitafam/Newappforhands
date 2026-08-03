@@ -27,7 +27,9 @@ import {
   loadSavedPermissions,
   savePermissions,
   verifyAndRequestStartupPermissions,
-  isAndroidApk
+  isAndroidApk,
+  launchInstagramApp,
+  toggleTorchFlashlight
 } from './utils/androidPermissions';
 
 export default function App() {
@@ -88,11 +90,11 @@ export default function App() {
   // Default Mappings as requested by user
   const [mappings, setMappings] = useState<GestureMapping[]>([
     { gesture: 'FIST', action: 'SCREENSHOT', enabled: true, labelFa: '✊ مشت کردن (گرفتن اسکرین‌شات)', iconName: 'Camera' },
+    { gesture: 'POINTING', action: 'OPEN_INSTAGRAM', enabled: true, labelFa: '👆 اشاره / چرخاندن انگشت اشاره (باز کردن اینستاگرام)', iconName: 'ExternalLink' },
+    { gesture: 'V_SIGN', action: 'TOGGLE_TORCH', enabled: true, labelFa: '✌️ علامت V (روشن/خاموش کردن چراغ‌قوه)', iconName: 'Zap' },
     { gesture: 'PINCH', action: 'SCROLL_DOWN', enabled: true, labelFa: '🤏 پینچ دو انگشت (اسکرول به پایین)', iconName: 'ArrowDown' },
-    { gesture: 'OPEN_PALM', action: 'NONE', enabled: true, labelFa: '🖐️ کف دست باز (Open Palm)', iconName: 'Hand' },
-    { gesture: 'POINTING', action: 'SCROLL_UP', enabled: true, labelFa: '👆 اشاره با یک انگشت (اسکرول بالا)', iconName: 'ArrowUp' },
-    { gesture: 'V_SIGN', action: 'VOLUME_UP', enabled: true, labelFa: '✌️ علامت ۲ (افزایش صدا)', iconName: 'Volume2' },
-    { gesture: 'THUMBS_UP', action: 'HOME', enabled: true, labelFa: '👍 شست بالا (بازگشت به خانه)', iconName: 'Home' }
+    { gesture: 'OPEN_PALM', action: 'SCROLL_UP', enabled: true, labelFa: '🖐️ کف دست باز (اسکرول به بالا)', iconName: 'Hand' },
+    { gesture: 'THUMBS_UP', action: 'VOLUME_UP', enabled: true, labelFa: '👍 شست بالا (افزایش صدا)', iconName: 'Volume2' }
   ]);
 
   // Gallery screenshots list
@@ -160,10 +162,30 @@ export default function App() {
           if (soundEnabled) soundFx.playShutterSound();
           if (config.vibrationEnabled) soundFx.vibrate([80, 40, 80]);
           setLastActionTriggered(`📸 اسکرین‌شات از ${serviceState.activeApp} ثبت شد (${new Date().toLocaleTimeString('fa-IR')})`);
+        } else if (mapping.action === 'OPEN_INSTAGRAM') {
+          if (soundEnabled) soundFx.playSuccessChime();
+          if (config.vibrationEnabled) soundFx.vibrate([60, 40, 60]);
+          launchInstagramApp();
+          setLastActionTriggered(`🚀 باز کردن اینستاگرام با حرکت اشاره انگشت (${new Date().toLocaleTimeString('fa-IR')})`);
+        } else if (mapping.action === 'TOGGLE_TORCH') {
+          toggleTorchFlashlight();
+          if (soundEnabled) soundFx.playSuccessChime();
+          if (config.vibrationEnabled) soundFx.vibrate([40, 40]);
+          setLastActionTriggered(`🔦 تغییر وضعیت چراغ‌قوه با حرکت V (${new Date().toLocaleTimeString('fa-IR')})`);
         } else if (mapping.action === 'SCROLL_DOWN') {
+          window.scrollBy({ top: 400, behavior: 'smooth' });
           if (soundEnabled) soundFx.playScrollTick();
           if (config.vibrationEnabled) soundFx.vibrate(30);
-          setLastActionTriggered(`👇 اسکرول خودکار به پایین در ${serviceState.activeApp} (${new Date().toLocaleTimeString('fa-IR')})`);
+          setLastActionTriggered(`👇 اسکرول به پایین در ${serviceState.activeApp} (${new Date().toLocaleTimeString('fa-IR')})`);
+        } else if (mapping.action === 'SCROLL_UP') {
+          window.scrollBy({ top: -400, behavior: 'smooth' });
+          if (soundEnabled) soundFx.playScrollTick();
+          if (config.vibrationEnabled) soundFx.vibrate(30);
+          setLastActionTriggered(`👆 اسکرول به بالا در ${serviceState.activeApp} (${new Date().toLocaleTimeString('fa-IR')})`);
+        } else if (mapping.action === 'VOLUME_UP') {
+          if (soundEnabled) soundFx.playSuccessChime();
+          if (config.vibrationEnabled) soundFx.vibrate(40);
+          setLastActionTriggered(`🔊 افزایش صدا (${new Date().toLocaleTimeString('fa-IR')})`);
         } else {
           setLastActionTriggered(`⚡ اقدام ${mapping.action} اجرا شد (${new Date().toLocaleTimeString('fa-IR')})`);
         }

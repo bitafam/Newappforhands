@@ -29,13 +29,14 @@ export const GestureMappingConfig: React.FC<GestureMappingConfigProps> = ({
 
   const actionOptions: { value: ActionType; labelFa: string }[] = [
     { value: 'SCREENSHOT', labelFa: '📸 گرفتن اسکرین‌شات (Screenshot)' },
+    { value: 'OPEN_INSTAGRAM', labelFa: '🚀 باز کردن برنامه اینستاگرام (Instagram)' },
+    { value: 'TOGGLE_TORCH', labelFa: '🔦 روشن/خاموش کردن چراغ‌قوه (Flashlight)' },
     { value: 'SCROLL_DOWN', labelFa: '⬇️ اسکرول به پایین (Scroll Down)' },
     { value: 'SCROLL_UP', labelFa: '⬆️ اسکرول به بالا (Scroll Up)' },
     { value: 'VOLUME_UP', labelFa: '🔊 افزایش صدا (Volume Up)' },
     { value: 'VOLUME_DOWN', labelFa: '🔉 کاهش صدا (Volume Down)' },
     { value: 'BACK', labelFa: '◀️ دکمه بازگشت (Back)' },
     { value: 'HOME', labelFa: '🏠 دکمه خانه (Home)' },
-    { value: 'TOGGLE_TORCH', labelFa: '🔦 فلاش دوربین (Flashlight)' },
     { value: 'NONE', labelFa: '⛔ بدون اقدام (غیرفعال)' }
   ];
 
