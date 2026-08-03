@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Header } from './components/Header';
 import { CameraFeed } from './components/CameraFeed';
 import { GestureMappingConfig } from './components/GestureMappingConfig';
@@ -11,6 +11,7 @@ import { ScreenshotGallery } from './components/ScreenshotGallery';
 import { AndroidPermissionsWizard } from './components/AndroidPermissionsWizard';
 import { BackgroundServiceController } from './components/BackgroundServiceController';
 import { CalibrationModal } from './components/CalibrationModal';
+import { AlertCircle, ShieldAlert, Camera } from 'lucide-react';
 import {
   GestureConfig,
   GestureMapping,
@@ -21,6 +22,12 @@ import {
   BackgroundServiceState
 } from './types';
 import { soundFx } from './utils/audio';
+import {
+  loadSavedPermissions,
+  savePermissions,
+  verifyAndRequestStartupPermissions,
+  isAndroidApk
+} from './utils/androidPermissions';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'service' | 'permissions' | 'config' | 'camera' | 'gallery'>('service');
@@ -28,16 +35,23 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
 
-  // Android Permissions State
-  const [permissions, setPermissions] = useState<AndroidPermissions>({
-    controlOtherApps: true,
-    accessibilityService: true,
-    backgroundAutoStart: true,
-    ignoreBatteryOptimizations: true,
-    camera: true,
-    systemAlertWindow: true,
-    foregroundService: true
-  });
+  // Android Permissions State initialized from storage or defaults to FALSE (OFF)
+  const [permissions, setPermissions] = useState<AndroidPermissions>(() => loadSavedPermissions());
+
+  // Run startup permission check upon entry (especially in APK mode)
+  useEffect(() => {
+    let isMounted = true;
+    verifyAndRequestStartupPermissions(permissions).then(({ updatedPermissions }) => {
+      if (isMounted) {
+        setPermissions(updatedPermissions);
+        savePermissions(updatedPermissions);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Background Service & Overlay State
   const [serviceState, setServiceState] = useState<BackgroundServiceState>({
@@ -175,6 +189,33 @@ export default function App() {
 
       {/* Main App Canvas */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+        {/* Warning banner when permissions are missing */}
+        {(!permissions.camera || !permissions.accessibilityService) && activeTab !== 'permissions' && (
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-100 text-rose-700">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-rose-900">
+                  برخی دسترسی‌های ضروری APK خاموش هستند (عدم اعطا)
+                </h4>
+                <p className="text-[11px] text-rose-700">
+                  {!permissions.camera && '• سنسور دوربین خاموش است. '}
+                  {!permissions.accessibilityService && '• دسترسی دسترسی‌پذیری سیستم خاموش است.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setActiveTab('permissions')}
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+            >
+              اعطا و تنظیم دسترسی‌های خاموش ←
+            </button>
+          </div>
+        )}
+
         {/* Tab 1: Background Service Controller (Main Hub) */}
         {activeTab === 'service' && (
           <div className="space-y-6">
