@@ -1,6 +1,6 @@
 {
-  "appId": "com.gesture.controller.app",
-  "appName": "Gesture Controller Background",
+  "appId": "com.remix.gesture.controller",
+  "appName": "Remix Gesture Controller",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"

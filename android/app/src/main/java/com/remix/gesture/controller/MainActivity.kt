@@ -1,23 +1,52 @@
 package com.remix.gesture.controller
 
+import android.app.PictureInPictureParams
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Rational
+import android.webkit.WebSettings
 import com.getcapacitor.BridgeActivity
 
 class MainActivity : BridgeActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate()
+        super.onCreate(savedInstanceState)
         startGestureForegroundService()
+
+        // Configure WebView settings to allow background camera and video playback
+        bridge?.webView?.settings?.apply {
+            mediaPlaybackRequiresUserGesture = false
+            domStorageEnabled = true
+            allowFileAccess = true
+            allowContentAccess = true
+            javaScriptCanOpenWindowsAutomatically = true
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                val aspectRatio = Rational(9, 16)
+                val builder = PictureInPictureParams.Builder()
+                    .setAspectRatio(aspectRatio)
+                    .setAutoEnterEnabled(true)
+                setPictureInPictureParams(builder.build())
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        // Automatically launch Picture-in-Picture mode when leaving to Instagram or Home
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
-                enterPictureInPictureMode()
+                if (!isInPictureInPictureMode) {
+                    val aspectRatio = Rational(9, 16)
+                    val builder = PictureInPictureParams.Builder()
+                        .setAspectRatio(aspectRatio)
+                    enterPictureInPictureMode(builder.build())
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }

@@ -33,39 +33,75 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   const lastTimeRef = useRef<number>(performance.now());
   const frameCountRef = useRef<number>(0);
 
-  // Initialize MediaPipe HandLandmarker
+  // Initialize MediaPipe HandLandmarker with fallback resilient loading (GPU -> CPU fallback)
   useEffect(() => {
     let isMounted = true;
 
     async function initMediaPipe() {
-      try {
-        setIsLoadingModel(true);
-        const vision = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
-        );
+      setIsLoadingModel(true);
+      const wasmSources = [
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm',
+        'https://unpkg.com/@mediapipe/tasks-vision@latest/wasm',
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+      ];
 
-        if (!isMounted) return;
+      const modelSources = [
+        'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/hand_landmarker.task'
+      ];
 
-        const handLandmarker = await HandLandmarker.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-            delegate: 'GPU'
-          },
-          runningMode: 'VIDEO',
-          numHands: 1
-        });
+      let loadedLandmarker: HandLandmarker | null = null;
 
-        if (isMounted) {
-          handLandmarkerRef.current = handLandmarker;
-          setIsLoadingModel(false);
-          console.log('MediaPipe HandLandmarker loaded successfully.');
+      for (const wasmUrl of wasmSources) {
+        if (loadedLandmarker) break;
+        try {
+          const vision = await FilesetResolver.forVisionTasks(wasmUrl);
+          if (!isMounted) return;
+
+          for (const modelUrl of modelSources) {
+            if (loadedLandmarker) break;
+            // 1. Try GPU delegate first
+            try {
+              loadedLandmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                  modelAssetPath: modelUrl,
+                  delegate: 'GPU'
+                },
+                runningMode: 'VIDEO',
+                numHands: 1
+              });
+              console.log('MediaPipe HandLandmarker loaded successfully with GPU delegate.');
+            } catch (gpuError) {
+              console.warn('GPU delegate failed, falling back to CPU delegate:', gpuError);
+              // 2. Fallback to CPU delegate if GPU fails on Android device
+              try {
+                loadedLandmarker = await HandLandmarker.createFromOptions(vision, {
+                  baseOptions: {
+                    modelAssetPath: modelUrl,
+                    delegate: 'CPU'
+                  },
+                  runningMode: 'VIDEO',
+                  numHands: 1
+                });
+                console.log('MediaPipe HandLandmarker loaded successfully with CPU delegate.');
+              } catch (cpuError) {
+                console.warn(`Failed loading model from ${modelUrl} with CPU:`, cpuError);
+              }
+            }
+          }
+        } catch (wasmError) {
+          console.warn(`WASM resolver failed for ${wasmUrl}:`, wasmError);
         }
-      } catch (err) {
-        console.error('Failed to load MediaPipe HandLandmarker:', err);
-        if (isMounted) {
-          setIsLoadingModel(false);
-          // Fall back gracefully
+      }
+
+      if (isMounted) {
+        if (loadedLandmarker) {
+          handLandmarkerRef.current = loadedLandmarker;
+        } else {
+          console.error('All MediaPipe load attempts failed.');
+          setCameraError('خطا در بارگذاری مدل هوش مصنوعی. لطفاً اتصال اینترنت خود را در اولین اجرا بررسی کنید.');
         }
+        setIsLoadingModel(false);
       }
     }
 
