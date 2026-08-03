@@ -59,36 +59,44 @@ export function detectHandGesture(
   // When curled into fist, finger tips are very close to wrist (~0.6 - 0.9 of palm scale)
   const fistTightness = Math.max(0, Math.min(1, (1.8 - avgFingerDist) / 1.0));
 
+  // Finger extension checks based on landmark geometry (Tip to Wrist vs PIP to Wrist)
+  const isIndexExtended = getDistance3D(indexTip, wrist) > getDistance3D(landmarks[6], wrist) * 1.05;
+  const isMiddleExtended = getDistance3D(middleTip, wrist) > getDistance3D(landmarks[10], wrist) * 1.05;
+  const isRingExtended = getDistance3D(ringTip, wrist) > getDistance3D(landmarks[14], wrist) * 1.05;
+  const isPinkyExtended = getDistance3D(pinkyTip, wrist) > getDistance3D(landmarks[18], wrist) * 1.05;
+
+  const isThumbUp = thumbTip.y < wrist.y && getDistance3D(thumbTip, wrist) / palmScale > 1.1;
+
   let detectedGesture: GestureType = 'NONE';
 
-  // --- Gesture Rules ---
+  // --- Priority Order Gesture Rules ---
 
-  // A. Fist Detection (مشت کردن):
-  if (fistTightness >= config.fistThreshold) {
-    detectedGesture = 'FIST';
-  }
-  // B. Pinch Detection (پینچ / نزدیک شدن شست و اشاره):
-  else if (normalizedPinch <= config.pinchThreshold) {
+  // 1. PINCH (پینچ شست و اشاره) - Pinch takes priority when thumb & index tips are close
+  if (normalizedPinch <= config.pinchThreshold) {
     detectedGesture = 'PINCH';
   }
-  // C. Three Fingers Extended (۳ انگشت - اشاره، وسط، انگشتر):
-  else if (indexDist > 1.15 && middleDist > 1.15 && ringDist > 1.15 && pinkyDist < 0.95) {
+  // 2. FIST (مشت کامل) - All 4 fingers folded in
+  else if (!isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended && fistTightness >= 0.5) {
+    detectedGesture = 'FIST';
+  }
+  // 3. THREE FINGERS (۳ انگشت - اشاره، وسط، انگشتر بالا)
+  else if (isIndexExtended && isMiddleExtended && isRingExtended && !isPinkyExtended) {
     detectedGesture = 'THREE_FINGERS';
   }
-  // D. V-Sign Detection (۲ انگشت - اشاره و وسط):
-  else if (indexDist > 1.15 && middleDist > 1.15 && ringDist < 0.95 && pinkyDist < 0.95) {
+  // 4. V SIGN (۲ انگشت - اشاره و وسط بالا)
+  else if (isIndexExtended && isMiddleExtended && !isRingExtended && !isPinkyExtended) {
     detectedGesture = 'V_SIGN';
   }
-  // E. Pointing Detection (۱ انگشت اشاره):
-  else if (indexDist > 1.25 && middleDist < 0.95 && ringDist < 0.95 && pinkyDist < 0.95) {
+  // 5. POINTING (۱ انگشت اشاره بالا)
+  else if (isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended) {
     detectedGesture = 'POINTING';
   }
-  // F. Thumbs Up Detection (شست بالا):
-  else if (thumbTip.y < wrist.y && getDistance3D(thumbTip, wrist) / palmScale > 1.1 && fistTightness > 0.4) {
+  // 6. THUMBS UP (شست بالا)
+  else if (isThumbUp && !isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended) {
     detectedGesture = 'THUMBS_UP';
   }
-  // G. Open Palm (کف دست باز):
-  else if (avgFingerDist > 1.35) {
+  // 7. OPEN PALM (کف دست باز - هر چهار انگشت اصلی باز)
+  else if (isIndexExtended && isMiddleExtended && isRingExtended && isPinkyExtended) {
     detectedGesture = 'OPEN_PALM';
   }
 
