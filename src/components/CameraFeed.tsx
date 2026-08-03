@@ -291,6 +291,28 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
+          {document.pictureInPictureEnabled && (
+            <button
+              onClick={async () => {
+                if (!videoRef.current) return;
+                try {
+                  if (document.pictureInPictureElement) {
+                    await document.exitPictureInPicture();
+                  } else {
+                    await videoRef.current.requestPictureInPicture();
+                  }
+                } catch (e) {
+                  console.warn('PiP launch error:', e);
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 transition text-xs font-bold border border-indigo-500/40 shadow-xs"
+              title="شناور کردن دوربین روی تمام برنامه‌ها مثل اینستاگرام"
+            >
+              <Eye className="w-3.5 h-3.5 text-indigo-400" />
+              حباب شناور دوربین (PiP)
+            </button>
+          )}
+
           <button
             onClick={() => setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition text-xs font-medium border border-slate-700"
