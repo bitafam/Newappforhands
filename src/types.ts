@@ -1,6 +1,7 @@
 export type GestureType = 
   | 'FIST' 
   | 'PINCH' 
+  | 'THREE_FINGERS'
   | 'OPEN_PALM' 
   | 'POINTING' 
   | 'V_SIGN' 

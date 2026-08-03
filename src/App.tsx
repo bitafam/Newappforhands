@@ -17,6 +17,7 @@ import {
   GestureConfig,
   GestureMapping,
   GestureType,
+  ActionType,
   HandDetectionResult,
   CapturedScreenshot,
   AndroidPermissions,
@@ -87,111 +88,127 @@ export default function App() {
     cameraFacingMode: 'user'
   });
 
-  // Default Mappings as requested by user
+  // Default Mappings as explicitly requested by user
   const [mappings, setMappings] = useState<GestureMapping[]>([
     { gesture: 'FIST', action: 'SCREENSHOT', enabled: true, labelFa: '✊ مشت کردن (گرفتن اسکرین‌شات)', iconName: 'Camera' },
-    { gesture: 'POINTING', action: 'OPEN_INSTAGRAM', enabled: true, labelFa: '👆 اشاره / چرخاندن انگشت اشاره (باز کردن اینستاگرام)', iconName: 'ExternalLink' },
-    { gesture: 'V_SIGN', action: 'TOGGLE_TORCH', enabled: true, labelFa: '✌️ علامت V (روشن/خاموش کردن چراغ‌قوه)', iconName: 'Zap' },
     { gesture: 'PINCH', action: 'SCROLL_DOWN', enabled: true, labelFa: '🤏 پینچ دو انگشت (اسکرول به پایین)', iconName: 'ArrowDown' },
-    { gesture: 'OPEN_PALM', action: 'SCROLL_UP', enabled: true, labelFa: '🖐️ کف دست باز (اسکرول به بالا)', iconName: 'Hand' },
-    { gesture: 'THUMBS_UP', action: 'VOLUME_UP', enabled: true, labelFa: '👍 شست بالا (افزایش صدا)', iconName: 'Volume2' }
+    { gesture: 'THREE_FINGERS', action: 'SCROLL_UP', enabled: true, labelFa: '🖐️ ۳ انگشت باز (اسکرول به بالا)', iconName: 'ArrowUp' },
+    { gesture: 'V_SIGN', action: 'TOGGLE_TORCH', enabled: true, labelFa: '✌️ علامت V دو انگشت (روشن/خاموش چراغ‌قوه)', iconName: 'Zap' },
+    { gesture: 'POINTING', action: 'VOLUME_UP', enabled: true, labelFa: '👆 انگشت اشاره (افزایش صدا)', iconName: 'Volume2' },
+    { gesture: 'THUMBS_UP', action: 'OPEN_INSTAGRAM', enabled: true, labelFa: '👍 شست بالا (باز کردن اینستاگرام)', iconName: 'ExternalLink' },
+    { gesture: 'OPEN_PALM', action: 'NONE', enabled: false, labelFa: '🖐️ کف دست باز (غیرفعال جهت جلوگیری از تحریک ناخواسته)', iconName: 'Hand' }
   ]);
 
   // Gallery screenshots list
   const [screenshots, setScreenshots] = useState<CapturedScreenshot[]>([]);
   const [lastDetection, setLastDetection] = useState<HandDetectionResult | null>(null);
 
-  // Active Trigger State
+  // Active Trigger State & Continuous 3-Second Hold Tracking
   const [activeGesture, setActiveGesture] = useState<GestureType>('NONE');
   const [lastActionTriggered, setLastActionTriggered] = useState<string | null>(null);
 
-  // Timers to handle Hold Time and Cooldown
   const holdStartTimeRef = useRef<{ gesture: GestureType; time: number } | null>(null);
   const lastTriggerTimeRef = useRef<number>(0);
+  const isContinuousModeRef = useRef<boolean>(false);
 
   // Add Screenshot helper
   const handleAddScreenshot = (newShot: CapturedScreenshot) => {
     setScreenshots((prev) => [newShot, ...prev]);
   };
 
+  // Execute mapped action
+  const executeMappedAction = useCallback((action: ActionType, gesture: GestureType) => {
+    if (action === 'SCREENSHOT') {
+      const shot: CapturedScreenshot = {
+        id: `shot_${Date.now()}`,
+        dataUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="500" viewBox="0 0 300 500"><rect width="300" height="500" fill="%23f8fafc"/><text x="150" y="220" fill="%234f46e5" font-size="16" text-anchor="middle" font-family="sans-serif">اسکرین‌شات خودکار پس‌زمینه</text><text x="150" y="260" fill="%23059669" font-size="12" text-anchor="middle" font-family="sans-serif">ثبت شده با مشت دست ✊</text></svg>',
+        timestamp: new Date().toLocaleTimeString('fa-IR'),
+        triggeredBy: gesture,
+        appName: serviceState.activeApp
+      };
+      handleAddScreenshot(shot);
+      if (soundEnabled) soundFx.playShutterSound();
+      if (config.vibrationEnabled) soundFx.vibrate([80, 40, 80]);
+      setLastActionTriggered(`📸 اسکرین‌شات با حرکت مشت ✊ (${new Date().toLocaleTimeString('fa-IR')})`);
+    } else if (action === 'OPEN_INSTAGRAM') {
+      if (soundEnabled) soundFx.playSuccessChime();
+      if (config.vibrationEnabled) soundFx.vibrate([60, 40, 60]);
+      launchInstagramApp();
+      setLastActionTriggered(`🚀 باز کردن برنامه اینستاگرام (${new Date().toLocaleTimeString('fa-IR')})`);
+    } else if (action === 'TOGGLE_TORCH') {
+      toggleTorchFlashlight();
+      if (soundEnabled) soundFx.playSuccessChime();
+      if (config.vibrationEnabled) soundFx.vibrate([40, 40]);
+      setLastActionTriggered(`🔦 تغییر وضعیت چراغ‌قوه با علامت ✌️ (${new Date().toLocaleTimeString('fa-IR')})`);
+    } else if (action === 'SCROLL_DOWN') {
+      window.scrollBy({ top: 450, behavior: 'smooth' });
+      if (soundEnabled) soundFx.playScrollTick();
+      if (config.vibrationEnabled) soundFx.vibrate(25);
+      setLastActionTriggered(`👇 اسکرول به پایین با پینچ 🤏 (${new Date().toLocaleTimeString('fa-IR')})`);
+    } else if (action === 'SCROLL_UP') {
+      window.scrollBy({ top: -450, behavior: 'smooth' });
+      if (soundEnabled) soundFx.playScrollTick();
+      if (config.vibrationEnabled) soundFx.vibrate(25);
+      setLastActionTriggered(`👆 اسکرول به بالا با ۳ انگشت 🖐️ (${new Date().toLocaleTimeString('fa-IR')})`);
+    } else if (action === 'VOLUME_UP') {
+      if (soundEnabled) soundFx.playSuccessChime();
+      if (config.vibrationEnabled) soundFx.vibrate(35);
+      setLastActionTriggered(`🔊 افزایش صدا با انگشت اشاره 👆 (${new Date().toLocaleTimeString('fa-IR')})`);
+    } else {
+      setLastActionTriggered(`⚡ اقدام ${action} اجرا شد (${new Date().toLocaleTimeString('fa-IR')})`);
+    }
+  }, [config.vibrationEnabled, serviceState.activeApp, soundEnabled]);
+
   // Handle detection updates from CameraFeed
   const handleGestureDetected = useCallback((result: HandDetectionResult) => {
     setLastDetection(result);
     const now = performance.now();
-
-    // Check if cooldown period is active
-    if (now - lastTriggerTimeRef.current < config.cooldownMs) {
-      return;
-    }
-
     const currentGesture = result.gesture;
 
     if (currentGesture === 'NONE') {
       holdStartTimeRef.current = null;
+      isContinuousModeRef.current = false;
       setActiveGesture('NONE');
       return;
     }
 
-    // Check mapping
+    // Find enabled mapping
     const mapping = mappings.find((m) => m.gesture === currentGesture && m.enabled);
     if (!mapping || mapping.action === 'NONE') {
       setActiveGesture(currentGesture);
+      holdStartTimeRef.current = null;
+      isContinuousModeRef.current = false;
       return;
     }
 
-    // Verify hold time threshold
+    setActiveGesture(currentGesture);
+
+    // Initial hold tracking
     if (!holdStartTimeRef.current || holdStartTimeRef.current.gesture !== currentGesture) {
       holdStartTimeRef.current = { gesture: currentGesture, time: now };
+      isContinuousModeRef.current = false;
     } else {
       const heldDuration = now - holdStartTimeRef.current.time;
-      if (heldDuration >= config.holdTimeMs) {
-        // Trigger action!
-        setActiveGesture(currentGesture);
-        lastTriggerTimeRef.current = now;
-        holdStartTimeRef.current = null;
 
-        if (mapping.action === 'SCREENSHOT') {
-          const shot: CapturedScreenshot = {
-            id: `shot_${Date.now()}`,
-            dataUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="500" viewBox="0 0 300 500"><rect width="300" height="500" fill="%23f8fafc"/><text x="150" y="220" fill="%234f46e5" font-size="16" text-anchor="middle" font-family="sans-serif">اسکرین‌شات خودکار پس‌زمینه</text><text x="150" y="260" fill="%23059669" font-size="12" text-anchor="middle" font-family="sans-serif">برنامه فعال: اینستاگرام</text></svg>',
-            timestamp: new Date().toLocaleTimeString('fa-IR'),
-            triggeredBy: 'FIST',
-            appName: serviceState.activeApp
-          };
-          handleAddScreenshot(shot);
-          if (soundEnabled) soundFx.playShutterSound();
-          if (config.vibrationEnabled) soundFx.vibrate([80, 40, 80]);
-          setLastActionTriggered(`📸 اسکرین‌شات از ${serviceState.activeApp} ثبت شد (${new Date().toLocaleTimeString('fa-IR')})`);
-        } else if (mapping.action === 'OPEN_INSTAGRAM') {
-          if (soundEnabled) soundFx.playSuccessChime();
-          if (config.vibrationEnabled) soundFx.vibrate([60, 40, 60]);
-          launchInstagramApp();
-          setLastActionTriggered(`🚀 باز کردن اینستاگرام با حرکت اشاره انگشت (${new Date().toLocaleTimeString('fa-IR')})`);
-        } else if (mapping.action === 'TOGGLE_TORCH') {
-          toggleTorchFlashlight();
-          if (soundEnabled) soundFx.playSuccessChime();
-          if (config.vibrationEnabled) soundFx.vibrate([40, 40]);
-          setLastActionTriggered(`🔦 تغییر وضعیت چراغ‌قوه با حرکت V (${new Date().toLocaleTimeString('fa-IR')})`);
-        } else if (mapping.action === 'SCROLL_DOWN') {
-          window.scrollBy({ top: 400, behavior: 'smooth' });
-          if (soundEnabled) soundFx.playScrollTick();
-          if (config.vibrationEnabled) soundFx.vibrate(30);
-          setLastActionTriggered(`👇 اسکرول به پایین در ${serviceState.activeApp} (${new Date().toLocaleTimeString('fa-IR')})`);
-        } else if (mapping.action === 'SCROLL_UP') {
-          window.scrollBy({ top: -400, behavior: 'smooth' });
-          if (soundEnabled) soundFx.playScrollTick();
-          if (config.vibrationEnabled) soundFx.vibrate(30);
-          setLastActionTriggered(`👆 اسکرول به بالا در ${serviceState.activeApp} (${new Date().toLocaleTimeString('fa-IR')})`);
-        } else if (mapping.action === 'VOLUME_UP') {
-          if (soundEnabled) soundFx.playSuccessChime();
-          if (config.vibrationEnabled) soundFx.vibrate(40);
-          setLastActionTriggered(`🔊 افزایش صدا (${new Date().toLocaleTimeString('fa-IR')})`);
-        } else {
-          setLastActionTriggered(`⚡ اقدام ${mapping.action} اجرا شد (${new Date().toLocaleTimeString('fa-IR')})`);
+      // 1. First trigger after initial holdTimeMs (~250ms)
+      if (heldDuration >= config.holdTimeMs && !isContinuousModeRef.current) {
+        if (now - lastTriggerTimeRef.current >= 1200) { // 1.2s pause cooldown for single discrete trigger
+          lastTriggerTimeRef.current = now;
+          executeMappedAction(mapping.action, currentGesture);
+        }
+      }
+
+      // 2. 3-Second Continuous Hold Mode (تکرار متوالی ۳ ثانیه‌ای)
+      if (heldDuration >= 3000) {
+        isContinuousModeRef.current = true;
+        // In continuous mode, trigger every 350ms
+        if (now - lastTriggerTimeRef.current >= 350) {
+          lastTriggerTimeRef.current = now;
+          executeMappedAction(mapping.action, currentGesture);
         }
       }
     }
-  }, [config.cooldownMs, config.holdTimeMs, config.vibrationEnabled, mappings, serviceState.activeApp, soundEnabled]);
+  }, [config.holdTimeMs, executeMappedAction, mappings]);
 
   const handleDeleteScreenshot = (id: string) => {
     setScreenshots((prev) => prev.filter((s) => s.id !== id));

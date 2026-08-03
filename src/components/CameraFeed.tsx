@@ -378,12 +378,20 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
           <div className="absolute top-4 right-4 bg-slate-900/90 backdrop-blur-md border border-indigo-500/40 px-3.5 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
             <Zap className="w-4 h-4 text-amber-400" />
             <span className="text-xs font-bold text-white">
-              تشخیص حرکتی:
+              حرکت شناسایی‌شده:
               <strong className="text-indigo-400 mr-1">
                 {currentResult.gesture === 'FIST'
                   ? '✊ مشت (اسکرین‌شات)'
                   : currentResult.gesture === 'PINCH'
-                  ? '🤏 پینچ دو انگشت (اسکرول)'
+                  ? '🤏 پینچ شست و اشاره (اسکرول پایین)'
+                  : currentResult.gesture === 'THREE_FINGERS'
+                  ? '🖐️ ۳ انگشت اشاره (اسکرول بالا)'
+                  : currentResult.gesture === 'V_SIGN'
+                  ? '✌️ علامت V دو انگشت (چراغ‌قوه)'
+                  : currentResult.gesture === 'POINTING'
+                  ? '👆 یک انگشت اشاره (افزایش صدا)'
+                  : currentResult.gesture === 'THUMBS_UP'
+                  ? '👍 شست بالا (اینستاگرام)'
                   : currentResult.gesture}
               </strong>
             </span>
@@ -391,32 +399,46 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
         )}
 
         {/* Manual Gesture Simulation Bar (For testing without camera) */}
-        <div className="absolute bottom-3 inset-x-3 bg-slate-900/85 backdrop-blur-md border border-slate-800 p-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
-          <span className="text-slate-400 text-[11px] font-medium flex items-center gap-1">
+        <div className="absolute bottom-3 inset-x-3 bg-slate-900/90 backdrop-blur-md border border-slate-800 p-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="text-slate-300 text-[11px] font-medium flex items-center gap-1">
             <Zap className="w-3.5 h-3.5 text-amber-400" />
-            تست دستی (بدون نیاز به دوربین):
+            تست مستقیم حرکات:
           </span>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => triggerSimulation('FIST')}
-              className="px-3 py-1.5 rounded-lg bg-rose-600/20 border border-rose-500/30 text-rose-300 hover:bg-rose-600/40 transition font-medium active:scale-95 flex items-center gap-1"
+              className="px-2.5 py-1 rounded-lg bg-rose-600/20 border border-rose-500/30 text-rose-300 hover:bg-rose-600/40 transition font-medium text-[11px] flex items-center gap-1"
             >
-              ✊ مشت (اسکرین‌شات)
+              ✊ مشت (عکس)
             </button>
 
             <button
               onClick={() => triggerSimulation('PINCH')}
-              className="px-3 py-1.5 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-600/40 transition font-medium active:scale-95 flex items-center gap-1"
+              className="px-2.5 py-1 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-600/40 transition font-medium text-[11px] flex items-center gap-1"
             >
-              🤏 پینچ (اسکرول)
+              🤏 پینچ (اسکرول پایین)
             </button>
 
             <button
-              onClick={() => triggerSimulation('OPEN_PALM')}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition font-medium border border-slate-700"
+              onClick={() => triggerSimulation('THREE_FINGERS')}
+              className="px-2.5 py-1 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/40 transition font-medium text-[11px] flex items-center gap-1"
             >
-              🖐️ دست باز
+              🖐️ ۳ انگشت (اسکرول بالا)
+            </button>
+
+            <button
+              onClick={() => triggerSimulation('V_SIGN')}
+              className="px-2.5 py-1 rounded-lg bg-amber-600/20 border border-amber-500/30 text-amber-300 hover:bg-amber-600/40 transition font-medium text-[11px] flex items-center gap-1"
+            >
+              ✌️ V (چراغ‌قوه)
+            </button>
+
+            <button
+              onClick={() => triggerSimulation('POINTING')}
+              className="px-2.5 py-1 rounded-lg bg-sky-600/20 border border-sky-500/30 text-sky-300 hover:bg-sky-600/40 transition font-medium text-[11px] flex items-center gap-1"
+            >
+              👆 اشاره (افزایش صدا)
             </button>
           </div>
         </div>
