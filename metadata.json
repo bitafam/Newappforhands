@@ -1,0 +1,10 @@
+{
+  "name": "Remix Android Gesture Controller",
+  "description": "سامانه هوشمند تشخیص حرکات دست با دوربین برای کنترل اسکرین‌شات، اسکرول و دستورات سفارشی در اندروید",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
