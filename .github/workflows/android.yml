@@ -43,7 +43,37 @@ jobs:
 
       - name: Initialize Capacitor Android Project
         run: |
-          npx cap add android || true
+          # Backup custom AndroidManifest.xml if present
+          if [ -f "android/app/src/main/AndroidManifest.xml" ]; then
+            echo "Backing up custom AndroidManifest.xml..."
+            cp android/app/src/main/AndroidManifest.xml /tmp/custom_manifest.xml
+          elif [ -f "AndroidManifest.xml" ]; then
+            echo "Backing up root AndroidManifest.xml..."
+            cp AndroidManifest.xml /tmp/custom_manifest.xml
+          fi
+
+          # If gradlew does not exist in android/, clean incomplete android folder and re-initialize capacitor android
+          if [ ! -f "android/gradlew" ]; then
+            echo "android/gradlew missing! Re-generating fresh Capacitor android project..."
+            rm -rf android
+            npx cap add android
+          fi
+
+          # Ensure gradlew exists, or generate wrapper via gradle CLI
+          if [ ! -f "android/gradlew" ]; then
+            echo "Generating Gradle Wrapper..."
+            cd android
+            gradle wrapper
+            cd ..
+          fi
+
+          # Restore custom AndroidManifest.xml into generated android project
+          if [ -f "/tmp/custom_manifest.xml" ]; then
+            echo "Restoring custom AndroidManifest.xml with all APK permissions..."
+            mkdir -p android/app/src/main
+            cp /tmp/custom_manifest.xml android/app/src/main/AndroidManifest.xml
+          fi
+
           npx cap sync android
 
       - name: Resolve Kotlin Stdlib Duplicate Classes
