@@ -43,15 +43,6 @@ jobs:
 
       - name: Initialize Capacitor Android Project
         run: |
-          # Backup custom AndroidManifest.xml if present
-          if [ -f "android/app/src/main/AndroidManifest.xml" ]; then
-            echo "Backing up custom AndroidManifest.xml..."
-            cp android/app/src/main/AndroidManifest.xml /tmp/custom_manifest.xml
-          elif [ -f "AndroidManifest.xml" ]; then
-            echo "Backing up root AndroidManifest.xml..."
-            cp AndroidManifest.xml /tmp/custom_manifest.xml
-          fi
-
           # If gradlew does not exist in android/, clean incomplete android folder and re-initialize capacitor android
           if [ ! -f "android/gradlew" ]; then
             echo "android/gradlew missing! Re-generating fresh Capacitor android project..."
@@ -67,14 +58,27 @@ jobs:
             cd ..
           fi
 
-          # Restore custom AndroidManifest.xml into generated android project
-          if [ -f "/tmp/custom_manifest.xml" ]; then
-            echo "Restoring custom AndroidManifest.xml with all APK permissions..."
-            mkdir -p android/app/src/main
-            cp /tmp/custom_manifest.xml android/app/src/main/AndroidManifest.xml
-            # Remove deprecated package attribute from manifest for AGP 7+ compatibility
-            sed -i 's/package="[^"]*"//g' android/app/src/main/AndroidManifest.xml
+          # Copy custom AndroidManifest.xml and all resources / java files
+          echo "Syncing custom AndroidManifest.xml and AAPT resources..."
+          mkdir -p android/app/src/main/res/xml
+          mkdir -p android/app/src/main/res/values
+          mkdir -p android/app/src/main/java/com/remix/gesture/controller
+
+          if [ -f "AndroidManifest.xml" ]; then
+            cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
+
+          if [ -d "android_custom/res" ]; then
+            cp -r android_custom/res/* android/app/src/main/res/
+          fi
+
+          # Copy Kotlin classes
+          if [ -d "android/app/src/main/java/com/remix/gesture/controller" ]; then
+            cp -r src/android_services/* android/app/src/main/java/com/remix/gesture/controller/ 2>/dev/null || true
+          fi
+
+          # Remove deprecated package attribute from manifest for AGP 7+ compatibility
+          sed -i 's/package="[^"]*"//g' android/app/src/main/AndroidManifest.xml || true
 
           npx cap sync android
 
