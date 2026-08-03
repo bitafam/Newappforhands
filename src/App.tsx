@@ -11,7 +11,8 @@ import { ScreenshotGallery } from './components/ScreenshotGallery';
 import { AndroidPermissionsWizard } from './components/AndroidPermissionsWizard';
 import { BackgroundServiceController } from './components/BackgroundServiceController';
 import { CalibrationModal } from './components/CalibrationModal';
-import { AlertCircle, ShieldAlert, Camera } from 'lucide-react';
+import { OnboardingPermissionsModal } from './components/OnboardingPermissionsModal';
+import { AlertCircle, ShieldAlert, Camera, Sparkles } from 'lucide-react';
 import {
   GestureConfig,
   GestureMapping,
@@ -37,6 +38,12 @@ export default function App() {
 
   // Android Permissions State initialized from storage or defaults to FALSE (OFF)
   const [permissions, setPermissions] = useState<AndroidPermissions>(() => loadSavedPermissions());
+  
+  // Modal state for initial step-by-step onboarding permission wizard
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(() => {
+    const loaded = loadSavedPermissions();
+    return !loaded.camera || !loaded.accessibilityService;
+  });
 
   // Run startup permission check upon entry (especially in APK mode)
   useEffect(() => {
@@ -207,12 +214,22 @@ export default function App() {
               </div>
             </div>
 
-            <button
-              onClick={() => setActiveTab('permissions')}
-              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
-            >
-              اعطا و تنظیم دسترسی‌های خاموش ←
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsOnboardingOpen(true)}
+                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+              >
+                <Sparkles className="w-4 h-4" />
+                راهنمای گام‌به‌گام اعطا
+              </button>
+
+              <button
+                onClick={() => setActiveTab('permissions')}
+                className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+              >
+                مدیریت دسترسی‌ها ←
+              </button>
+            </div>
           </div>
         )}
 
@@ -296,6 +313,15 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Interactive Onboarding Permissions Modal */}
+      {isOnboardingOpen && (
+        <OnboardingPermissionsModal
+          permissions={permissions}
+          setPermissions={setPermissions}
+          onClose={() => setIsOnboardingOpen(false)}
+        />
+      )}
 
       {/* Interactive Calibration Modal */}
       <CalibrationModal
