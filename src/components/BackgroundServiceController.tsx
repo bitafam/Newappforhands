@@ -150,7 +150,7 @@ export const BackgroundServiceController: React.FC<BackgroundServiceControllerPr
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-slate-900">
-                  سرویس پس‌زمینه و حباب شناور (Foreground Service)
+                  سرویس پس‌زمینه و حباب شناور (Foreground Service & Floating Window)
                 </h2>
                 <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${
                   serviceState.isRunning ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
@@ -165,18 +165,44 @@ export const BackgroundServiceController: React.FC<BackgroundServiceControllerPr
                 )}
               </div>
               <p className="text-xs text-slate-600 mt-1">
-                برنامه حتی در صورت خروج از محیط وب یا باز کردن اینستاگرام، سنسور دوربین را بیدار نگه می‌دارد.
+                برنامه با استفاده از حباب شناور (Picture-in-Picture) روی تمام برنامه‌ها مانند اینستاگرام فعال می‌ماند.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {document.pictureInPictureEnabled && (
+              <button
+                onClick={async () => {
+                  const videoEl = document.querySelector('video');
+                  if (videoEl) {
+                    try {
+                      if (document.pictureInPictureElement) {
+                        await document.exitPictureInPicture();
+                        showOverlayToast('حباب شناور بسته‌شد');
+                      } else {
+                        await videoEl.requestPictureInPicture();
+                        showOverlayToast('📌 حباب شناور روی صفحه فعال شد! اکنون وارد اینستاگرام شوید');
+                      }
+                    } catch (e) {
+                      console.warn('PiP error:', e);
+                      showOverlayToast('لطفاً ابتدا دوربین را روشن کنید');
+                    }
+                  }
+                }}
+                className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2"
+              >
+                <Camera className="w-4 h-4" />
+                📌 فعال‌سازی حباب شناور دوربین (PiP)
+              </button>
+            )}
+
             <button
               onClick={handleLaunchInstagram}
               className="px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2"
             >
               <ExternalLink className="w-4 h-4" />
-              باز کردن مستقیم اینستاگرام
+              باز کردن اینستاگرام
             </button>
 
             <button
@@ -192,6 +218,17 @@ export const BackgroundServiceController: React.FC<BackgroundServiceControllerPr
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Background execution instructions */}
+      <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 text-xs space-y-2 text-indigo-950">
+        <h4 className="font-bold text-indigo-900 flex items-center gap-2">
+          💡 راهنمای کارکرد در پس‌زمینه روی برنامه اینستاگرام و برنامه‌های دیگر:
+        </h4>
+        <ul className="list-disc list-inside space-y-1 text-slate-700 leading-relaxed pr-1">
+          <li><strong>در نسخه وب اندروید / مرورگر:</strong> روی دکمه <strong className="text-indigo-800">«📌 فعال‌سازی حباب شناور دوربین»</strong> بزنید. پنجره تصویر دوربین شناور شده و در گوشه صفحه باقی می‌ماند. سپس می‌توانید بدون بسته شدن برنامه، اینستاگرام را باز کنید و دستورات دستی را اجرا کنید.</li>
+          <li><strong>در نسخه فایل APK نصب شده روی اندروید:</strong> فایل APK دارای سرویس اندرویدی <code className="bg-indigo-100 text-indigo-800 px-1 py-0.5 rounded font-mono text-[11px]">ForegroundService</code> و <code className="bg-indigo-100 text-indigo-800 px-1 py-0.5 rounded font-mono text-[11px]">AccessibilityService</code> است که بدون نیاز به باز بودن برنامه، کادر حرکتی را روی تمامی برنامه‌ها به طور مداوم اجرا می‌کند.</li>
+        </ul>
       </div>
 
       {/* Action Shortcut Quick Bar */}

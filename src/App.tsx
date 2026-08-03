@@ -161,48 +161,46 @@ export default function App() {
 
   // Handle detection updates from CameraFeed
   const handleGestureDetected = useCallback((result: HandDetectionResult) => {
-    setLastDetection(result);
     const now = performance.now();
     const currentGesture = result.gesture;
+
+    // Always keep last detection telemetry fresh for smooth canvas and status rendering
+    setLastDetection(result);
+    setActiveGesture(currentGesture);
 
     if (currentGesture === 'NONE') {
       holdStartTimeRef.current = null;
       isContinuousModeRef.current = false;
-      setActiveGesture('NONE');
       return;
     }
 
     // Find enabled mapping
     const mapping = mappings.find((m) => m.gesture === currentGesture && m.enabled);
     if (!mapping || mapping.action === 'NONE') {
-      setActiveGesture(currentGesture);
       holdStartTimeRef.current = null;
       isContinuousModeRef.current = false;
       return;
     }
 
-    setActiveGesture(currentGesture);
-
-    // Initial hold tracking
+    // Gesture timing logic
     if (!holdStartTimeRef.current || holdStartTimeRef.current.gesture !== currentGesture) {
       holdStartTimeRef.current = { gesture: currentGesture, time: now };
       isContinuousModeRef.current = false;
     } else {
       const heldDuration = now - holdStartTimeRef.current.time;
 
-      // 1. First trigger after initial holdTimeMs (~250ms)
+      // 1. Initial trigger after hold time (~250ms)
       if (heldDuration >= config.holdTimeMs && !isContinuousModeRef.current) {
-        if (now - lastTriggerTimeRef.current >= 1200) { // 1.2s pause cooldown for single discrete trigger
+        if (now - lastTriggerTimeRef.current >= 800) { // 800ms cooldown after single trigger
           lastTriggerTimeRef.current = now;
           executeMappedAction(mapping.action, currentGesture);
         }
       }
 
-      // 2. 3-Second Continuous Hold Mode (تکرار متوالی ۳ ثانیه‌ای)
+      // 2. 3-Second Continuous repeat mode
       if (heldDuration >= 3000) {
         isContinuousModeRef.current = true;
-        // In continuous mode, trigger every 350ms
-        if (now - lastTriggerTimeRef.current >= 350) {
+        if (now - lastTriggerTimeRef.current >= 350) { // Repeat every 350ms when held > 3s
           lastTriggerTimeRef.current = now;
           executeMappedAction(mapping.action, currentGesture);
         }

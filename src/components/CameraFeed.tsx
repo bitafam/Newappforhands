@@ -127,6 +127,33 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
     };
   }, [facingMode, startCamera, stopCamera]);
 
+  const lastStateUpdateRef = useRef<number>(0);
+  const recentGesturesRef = useRef<GestureType[]>([]);
+  const lastSmoothedGestureRef = useRef<GestureType>('NONE');
+
+  // Fast 3-frame buffer for instant response with zero flicker
+  const getSmoothedGesture = (rawGesture: GestureType): GestureType => {
+    recentGesturesRef.current.push(rawGesture);
+    if (recentGesturesRef.current.length > 3) {
+      recentGesturesRef.current.shift();
+    }
+
+    const counts: Record<string, number> = {};
+    for (const g of recentGesturesRef.current) {
+      counts[g] = (counts[g] || 0) + 1;
+    }
+
+    let maxGesture: GestureType = rawGesture;
+    let maxCount = 0;
+    for (const [g, count] of Object.entries(counts)) {
+      if (count > maxCount) {
+        maxCount = count;
+        maxGesture = g as GestureType;
+      }
+    }
+    return maxGesture;
+  };
+
   // Main Detection Loop
   const processFrame = useCallback(() => {
     const video = videoRef.current;
@@ -164,7 +191,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             if (results && results.landmarks && results.landmarks.length > 0) {
               const rawLm = results.landmarks[0];
               landmarks = rawLm.map((pt) => ({
-                x: config.mirrorCamera ? 1 - pt.x : pt.x, // Mirror flip x if configured
+                x: config.mirrorCamera ? 1 - pt.x : pt.x,
                 y: pt.y,
                 z: pt.z
               }));
@@ -181,35 +208,52 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
 
         if (landmarks.length >= 21) {
           const gestureEval = detectHandGesture(landmarks, config);
+          const smoothedGesture = getSmoothedGesture(gestureEval.gesture);
+
           const detectionResult: HandDetectionResult = {
             landmarks,
             handedness,
             score: confidenceScore || 0.95,
-            gesture: gestureEval.gesture,
+            gesture: smoothedGesture,
             pinchDistance: gestureEval.pinchDistance,
             fistTightness: gestureEval.fistTightness,
             rawPinchDistance: gestureEval.rawPinchDistance
           };
 
-          setCurrentResult(detectionResult);
+          // Always call gesture logic handler
           onGestureDetected(detectionResult);
 
+          // Update UI state smoothly (~100ms or when gesture changes)
+          const timeSinceLastUpdate = now - lastStateUpdateRef.current;
+          if (smoothedGesture !== lastSmoothedGestureRef.current || timeSinceLastUpdate > 100) {
+            lastSmoothedGestureRef.current = smoothedGesture;
+            lastStateUpdateRef.current = now;
+            setCurrentResult(detectionResult);
+          }
+
           if (config.showSkeleton) {
-            drawHandSkeleton(ctx, landmarks, width, height, gestureEval.gesture);
+            drawHandSkeleton(ctx, landmarks, width, height, smoothedGesture);
           }
         } else {
-          // No hand detected
+          const smoothedGesture = getSmoothedGesture('NONE');
           const emptyResult: HandDetectionResult = {
             landmarks: [],
             handedness: 'Right',
             score: 0,
-            gesture: 'NONE',
+            gesture: smoothedGesture,
             pinchDistance: 1,
             fistTightness: 0,
             rawPinchDistance: 1
           };
-          setCurrentResult(emptyResult);
+
           onGestureDetected(emptyResult);
+
+          const timeSinceLastUpdate = now - lastStateUpdateRef.current;
+          if (smoothedGesture !== lastSmoothedGestureRef.current || timeSinceLastUpdate > 100) {
+            lastSmoothedGestureRef.current = smoothedGesture;
+            lastStateUpdateRef.current = now;
+            setCurrentResult(emptyResult);
+          }
         }
       }
     }
