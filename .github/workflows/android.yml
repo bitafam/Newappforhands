@@ -72,6 +72,8 @@ jobs:
             echo "Restoring custom AndroidManifest.xml with all APK permissions..."
             mkdir -p android/app/src/main
             cp /tmp/custom_manifest.xml android/app/src/main/AndroidManifest.xml
+            # Remove deprecated package attribute from manifest for AGP 7+ compatibility
+            sed -i 's/package="[^"]*"//g' android/app/src/main/AndroidManifest.xml
           fi
 
           npx cap sync android
