@@ -76,7 +76,7 @@ export function detectHandGesture(
     detectedGesture = 'PINCH';
   }
   // 2. FIST (مشت کامل) - All 4 fingers folded in
-  else if (!isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended && fistTightness >= 0.5) {
+  else if (!isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended && fistTightness >= config.fistThreshold) {
     detectedGesture = 'FIST';
   }
   // 3. THREE FINGERS (۳ انگشت - اشاره، وسط، انگشتر بالا)

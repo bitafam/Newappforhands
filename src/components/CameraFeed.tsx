@@ -347,25 +347,26 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
       }
     }
 
-    if (loopRefs.current.isCameraActive) {
-      animationFrameRef.current = requestAnimationFrame(processFrame);
-    }
+    // if (loopRefs.current.isCameraActive) {
+    //   animationFrameRef.current = requestAnimationFrame(processFrame);
+    // }
   }, []); // Empty dependency array, relies on refs
 
   useEffect(() => {
     if (isCameraActive) {
       if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+        clearInterval(animationFrameRef.current);
       }
-      animationFrameRef.current = requestAnimationFrame(processFrame);
+      animationFrameRef.current = window.setInterval(processFrame, 50) as unknown as number; // 20fps for background
     } else {
       if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+        clearInterval(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     }
     return () => {
       if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+        clearInterval(animationFrameRef.current);
       }
     };
   }, [isCameraActive, processFrame]);

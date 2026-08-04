@@ -76,6 +76,11 @@ class MainActivity : BridgeActivity() {
                     moveTaskToBack(true)
                 }
             }
+            
+            @android.webkit.JavascriptInterface
+            fun restartForegroundService() {
+                startGestureForegroundService()
+            }
         }, "AndroidBridge")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

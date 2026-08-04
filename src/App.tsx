@@ -51,10 +51,13 @@ export default function App() {
   // Run startup permission check upon entry (especially in APK mode)
   useEffect(() => {
     let isMounted = true;
-    verifyAndRequestStartupPermissions(permissions).then(({ updatedPermissions }) => {
+    verifyAndRequestStartupPermissions(permissions).then(({ updatedPermissions, isCameraGranted }) => {
       if (isMounted) {
         setPermissions(updatedPermissions);
         savePermissions(updatedPermissions);
+        if (isCameraGranted && typeof window !== 'undefined' && window.AndroidBridge && window.AndroidBridge.restartForegroundService) {
+          window.AndroidBridge.restartForegroundService();
+        }
       }
     });
 

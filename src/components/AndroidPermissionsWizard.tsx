@@ -49,6 +49,10 @@ export const AndroidPermissionsWizard: React.FC<AndroidPermissionsWizardProps> =
         savePermissions(next);
         return next;
       });
+      // Restart foreground service with camera capability
+      if (typeof window !== 'undefined' && (window as any).AndroidBridge && (window as any).AndroidBridge.restartForegroundService) {
+        (window as any).AndroidBridge.restartForegroundService();
+      }
     } else {
       setCameraFeedback('❌ دسترسی به دوربین داده نشد. لطفاً در تنظیمات دستگاه اجازه دهید.');
       setPermissions((prev) => {

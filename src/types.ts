@@ -99,6 +99,7 @@ declare global {
       performAction: (actionType: string) => void;
       enterPip: () => void;
       minimizeApp: () => void;
+      restartForegroundService: () => void;
     };
   }
 }
