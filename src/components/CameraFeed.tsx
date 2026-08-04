@@ -39,13 +39,19 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
 
     async function initMediaPipe() {
       setIsLoadingModel(true);
+      const localOrigin = window.location.origin;
+      
       const wasmSources = [
+        `${localOrigin}/wasm`,
+        '/wasm',
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm',
         'https://unpkg.com/@mediapipe/tasks-vision@latest/wasm',
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
       ];
 
       const modelSources = [
+        `${localOrigin}/models/hand_landmarker.task`,
+        '/models/hand_landmarker.task',
         'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/hand_landmarker.task'
       ];
@@ -116,43 +122,13 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
   }, []);
 
   // Start Camera Stream
-  const startCamera = useCallback(async () => {
+  const startCamera = useCallback(() => {
     setCameraError(null);
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode,
-            width: { ideal: 640 },
-            height: { ideal: 480 },
-            frameRate: { ideal: 30 }
-          },
-          audio: false
-        });
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          setIsCameraActive(true);
-        }
-      } else {
-        setCameraError('مرورگر شما دسترسی به دوربین را پشتیبانی نمی‌کند.');
-      }
-    } catch (err: unknown) {
-      console.warn('Camera access error:', err);
-      const errMsg = err instanceof Error ? err.message : String(err);
-      setCameraError(`خطا در دسترسی به دوربین: ${errMsg}. لطفاً اجازه دسترسی دوربین را بدهید.`);
-      setIsCameraActive(false);
-    }
-  }, [facingMode, setIsCameraActive]);
+    setIsCameraActive(true);
+  }, [setIsCameraActive]);
 
   // Stop Camera Stream
   const stopCamera = useCallback(() => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
-    }
     setIsCameraActive(false);
   }, [setIsCameraActive]);
 

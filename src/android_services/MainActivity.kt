@@ -10,6 +10,8 @@ import com.getcapacitor.BridgeActivity
 
 class MainActivity : BridgeActivity() {
 
+    private var isTransitioningToPip = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         startGestureForegroundService()
@@ -51,6 +53,7 @@ class MainActivity : BridgeActivity() {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         try {
                             if (!isInPictureInPictureMode) {
+                                isTransitioningToPip = true
                                 val aspectRatio = Rational(9, 16)
                                 val builder = PictureInPictureParams.Builder()
                                     .setAspectRatio(aspectRatio)
@@ -60,6 +63,7 @@ class MainActivity : BridgeActivity() {
                                 enterPictureInPictureMode(builder.build())
                             }
                         } catch (e: Exception) {
+                            isTransitioningToPip = false
                             e.printStackTrace()
                         }
                     }
@@ -89,15 +93,21 @@ class MainActivity : BridgeActivity() {
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration?) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        isTransitioningToPip = isInPictureInPictureMode
         if (isInPictureInPictureMode) {
             // Keep WebView active during Picture-in-Picture mode
             bridge?.webView?.onResume()
             bridge?.webView?.resumeTimers()
+        } else {
+            isTransitioningToPip = false
         }
-
-        // Notify React code
+        
+        // Notify React side about the PiP state change
         bridge?.webView?.post {
-            bridge?.webView?.evaluateJavascript("if (window.onPipModeChanged) { window.onPipModeChanged($isInPictureInPictureMode); }", null)
+            bridge?.webView?.evaluateJavascript(
+                "if (window.onPipModeChanged) { window.onPipModeChanged($isInPictureInPictureMode); }", 
+                null
+            )
         }
     }
 
@@ -106,12 +116,17 @@ class MainActivity : BridgeActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
                 if (!isInPictureInPictureMode) {
+                    isTransitioningToPip = true
                     val aspectRatio = Rational(9, 16)
                     val builder = PictureInPictureParams.Builder()
                         .setAspectRatio(aspectRatio)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        builder.setAutoEnterEnabled(true)
+                    }
                     enterPictureInPictureMode(builder.build())
                 }
             } catch (e: Exception) {
+                isTransitioningToPip = false
                 e.printStackTrace()
             }
         }
@@ -121,23 +136,33 @@ class MainActivity : BridgeActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
                 if (!isInPictureInPictureMode) {
+                    isTransitioningToPip = true
                     val aspectRatio = Rational(9, 16)
                     val builder = PictureInPictureParams.Builder()
                         .setAspectRatio(aspectRatio)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        builder.setAutoEnterEnabled(true)
+                    }
                     enterPictureInPictureMode(builder.build())
                     return
                 }
             } catch (e: Exception) {
+                isTransitioningToPip = false
                 e.printStackTrace()
             }
         }
         moveTaskToBack(true)
     }
 
+    override fun onResume() {
+        super.onResume()
+        isTransitioningToPip = false
+    }
+
     override fun onPause() {
         super.onPause()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) {
-            // Force WebView to stay active and resume timers even when Activity is paused in PiP mode
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && (isInPictureInPictureMode || isTransitioningToPip)) {
+            // Force WebView to stay active and resume timers even when Activity is paused in PiP mode or transitioning
             bridge?.webView?.onResume()
             bridge?.webView?.resumeTimers()
         }
