@@ -31,6 +31,49 @@ class MainActivity : BridgeActivity() {
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         }
 
+        // Add Javascript Interface bridge to dispatch events to GestureAccessibilityService
+        bridge?.webView?.addJavascriptInterface(object {
+            @android.webkit.JavascriptInterface
+            fun performAction(actionType: String) {
+                try {
+                    val intent = Intent("com.remix.gesture.PERFORM_ACTION").apply {
+                        putExtra("ACTION_TYPE", actionType)
+                    }
+                    sendBroadcast(intent)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            @android.webkit.JavascriptInterface
+            fun enterPip() {
+                runOnUiThread {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        try {
+                            if (!isInPictureInPictureMode) {
+                                val aspectRatio = Rational(9, 16)
+                                val builder = PictureInPictureParams.Builder()
+                                    .setAspectRatio(aspectRatio)
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    builder.setAutoEnterEnabled(true)
+                                }
+                                enterPictureInPictureMode(builder.build())
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+            }
+
+            @android.webkit.JavascriptInterface
+            fun minimizeApp() {
+                runOnUiThread {
+                    moveTaskToBack(true)
+                }
+            }
+        }, "AndroidBridge")
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             try {
                 val aspectRatio = Rational(9, 16)
@@ -66,6 +109,32 @@ class MainActivity : BridgeActivity() {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    override fun onBackPressed() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                if (!isInPictureInPictureMode) {
+                    val aspectRatio = Rational(9, 16)
+                    val builder = PictureInPictureParams.Builder()
+                        .setAspectRatio(aspectRatio)
+                    enterPictureInPictureMode(builder.build())
+                    return
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        moveTaskToBack(true)
+    }
+
+    override fun onPause() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) {
+            // Keep WebView alive and actively processing when in PiP mode
+            bridge?.webView?.resumeTimers()
+        } else {
+            super.onPause()
         }
     }
 

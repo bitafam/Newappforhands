@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Path
 import android.hardware.camera2.CameraManager
+import android.media.AudioManager
 import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 
@@ -26,6 +27,8 @@ class GestureAccessibilityService : AccessibilityService() {
                 "HOME" -> performGlobalAction(GLOBAL_ACTION_HOME)
                 "OPEN_INSTAGRAM" -> launchInstagram(context)
                 "TOGGLE_TORCH" -> toggleTorch(context)
+                "VOLUME_UP" -> adjustVolume(context, isUp = true)
+                "VOLUME_DOWN" -> adjustVolume(context, isUp = false)
             }
         }
     }
@@ -98,6 +101,19 @@ class GestureAccessibilityService : AccessibilityService() {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    private fun adjustVolume(context: Context?, isUp: Boolean) {
+        try {
+            val audioManager = context?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            audioManager?.adjustSuggestedStreamVolume(
+                if (isUp) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER,
+                AudioManager.USE_DEFAULT_STREAM_TYPE,
+                AudioManager.FLAG_SHOW_UI
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

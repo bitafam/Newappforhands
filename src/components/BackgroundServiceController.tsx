@@ -171,9 +171,20 @@ export const BackgroundServiceController: React.FC<BackgroundServiceControllerPr
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {document.pictureInPictureEnabled && (
+            {((typeof window !== 'undefined' && window.AndroidBridge) || document.pictureInPictureEnabled) && (
               <button
                 onClick={async () => {
+                  if (typeof window !== 'undefined' && window.AndroidBridge) {
+                    try {
+                      window.AndroidBridge.enterPip();
+                      showOverlayToast('📌 حباب شناور (PiP) فعال شد! اکنون می‌توانید از برنامه خارج شوید.');
+                    } catch (e) {
+                      console.warn('Native PiP error:', e);
+                      showOverlayToast('خطا در راه‌اندازی حباب شناور بومی');
+                    }
+                    return;
+                  }
+
                   const videoEl = document.querySelector('video');
                   if (videoEl) {
                     try {
@@ -188,6 +199,8 @@ export const BackgroundServiceController: React.FC<BackgroundServiceControllerPr
                       console.warn('PiP error:', e);
                       showOverlayToast('لطفاً ابتدا دوربین را روشن کنید');
                     }
+                  } else {
+                    showOverlayToast('لطفاً ابتدا دوربین را روشن کنید');
                   }
                 }}
                 className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2"

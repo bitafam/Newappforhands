@@ -102,6 +102,21 @@ export default function App() {
   // Gallery screenshots list
   const [screenshots, setScreenshots] = useState<CapturedScreenshot[]>([]);
   const [lastDetection, setLastDetection] = useState<HandDetectionResult | null>(null);
+  const [isPipMode, setIsPipMode] = useState(false);
+
+  // Listen to Picture-in-Picture state updates from native Android container
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).onPipModeChanged = (inPip: boolean) => {
+        setIsPipMode(inPip);
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).onPipModeChanged;
+      }
+    };
+  }, []);
 
   // Active Trigger State & Continuous 3-Second Hold Tracking
   const [activeGesture, setActiveGesture] = useState<GestureType>('NONE');
@@ -119,6 +134,16 @@ export default function App() {
 
   // Execute mapped action
   const executeMappedAction = useCallback((action: ActionType, gesture: GestureType) => {
+    // Invoke native Android Bridge if running in APK container
+    if (typeof window !== 'undefined' && window.AndroidBridge) {
+      try {
+        window.AndroidBridge.performAction(action);
+        console.log(`Native action dispatched via AndroidBridge: ${action}`);
+      } catch (err) {
+        console.warn('Failed to dispatch native action via bridge:', err);
+      }
+    }
+
     if (action === 'SCREENSHOT') {
       const shot: CapturedScreenshot = {
         id: `shot_${Date.now()}`,
@@ -155,6 +180,18 @@ export default function App() {
       if (soundEnabled) soundFx.playSuccessChime();
       if (config.vibrationEnabled) soundFx.vibrate(35);
       setLastActionTriggered(`🔊 افزایش صدا با انگشت اشاره 👆 (${new Date().toLocaleTimeString('fa-IR')})`);
+    } else if (action === 'VOLUME_DOWN') {
+      if (soundEnabled) soundFx.playSuccessChime();
+      if (config.vibrationEnabled) soundFx.vibrate(35);
+      setLastActionTriggered(`🔉 کاهش صدا (${new Date().toLocaleTimeString('fa-IR')})`);
+    } else if (action === 'BACK') {
+      if (soundEnabled) soundFx.playSuccessChime();
+      if (config.vibrationEnabled) soundFx.vibrate(35);
+      setLastActionTriggered(`↩️ بازگشت به عقب (${new Date().toLocaleTimeString('fa-IR')})`);
+    } else if (action === 'HOME') {
+      if (soundEnabled) soundFx.playSuccessChime();
+      if (config.vibrationEnabled) soundFx.vibrate(40);
+      setLastActionTriggered(`🏠 رفتن به صفحه اصلی (${new Date().toLocaleTimeString('fa-IR')})`);
     } else {
       setLastActionTriggered(`⚡ اقدام ${action} اجرا شد (${new Date().toLocaleTimeString('fa-IR')})`);
     }
@@ -218,6 +255,41 @@ export default function App() {
   const handleClearAllScreenshots = () => {
     setScreenshots([]);
   };
+
+  if (isPipMode) {
+    return (
+      <div className="w-full h-screen bg-slate-900 flex flex-col relative overflow-hidden dir-rtl">
+        <div className="absolute inset-0 z-0">
+          <CameraFeed
+            config={config}
+            onGestureDetected={handleGestureDetected}
+            isCameraActive={isCameraActive}
+            setIsCameraActive={setIsCameraActive}
+            miniMode={false}
+          />
+        </div>
+        
+        {/* Overlay HUD inside the PiP bubble */}
+        <div className="absolute top-2 right-2 bg-black/75 px-2.5 py-1 rounded-lg border border-emerald-500/30 flex items-center gap-1.5 z-10">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[10px] font-bold text-emerald-400 font-sans">کنترل فعال</span>
+        </div>
+
+        {activeGesture !== 'NONE' && (
+          <div className="absolute bottom-2 left-2 right-2 bg-indigo-600/95 text-white px-3 py-1.5 rounded-xl flex items-center justify-center gap-2 text-center shadow-lg border border-indigo-400/30 z-10 animate-bounce">
+            <span className="text-xs font-bold">
+              {activeGesture === 'FIST' && '✊ مشت (اسکرین‌شات)'}
+              {activeGesture === 'PINCH' && '🤏 پینچ (اسکرول پایین)'}
+              {activeGesture === 'THREE_FINGERS' && '🖐️ ۳ انگشت (اسکرول بالا)'}
+              {activeGesture === 'V_SIGN' && '✌️ علامت V (چراغ‌قوه)'}
+              {activeGesture === 'POINTING' && '👆 اشاره (افزایش صدا)'}
+              {activeGesture === 'THUMBS_UP' && '👍 لایک (اینستاگرام)'}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-500 selection:text-white dir-rtl">

@@ -92,3 +92,13 @@ export interface GestureLogItem {
   timestamp: string;
   success: boolean;
 }
+
+declare global {
+  interface Window {
+    AndroidBridge?: {
+      performAction: (actionType: string) => void;
+      enterPip: () => void;
+      minimizeApp: () => void;
+    };
+  }
+}
