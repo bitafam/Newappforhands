@@ -94,6 +94,14 @@ class MainActivity : BridgeActivity() {
             bridge?.webView?.onResume()
             bridge?.webView?.resumeTimers()
         }
+        
+        // Notify React side about the PiP state change
+        bridge?.webView?.post {
+            bridge?.webView?.evaluateJavascript(
+                "if (window.onPipModeChanged) { window.onPipModeChanged($isInPictureInPictureMode); }", 
+                null
+            )
+        }
     }
 
     override fun onUserLeaveHint() {
@@ -130,11 +138,11 @@ class MainActivity : BridgeActivity() {
     }
 
     override fun onPause() {
+        super.onPause()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) {
-            // Keep WebView alive and actively processing when in PiP mode
+            // Force WebView to stay active and resume timers even when Activity is paused in PiP mode
+            bridge?.webView?.onResume()
             bridge?.webView?.resumeTimers()
-        } else {
-            super.onPause()
         }
     }
 

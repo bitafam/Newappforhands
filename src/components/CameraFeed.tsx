@@ -156,9 +156,68 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
     setIsCameraActive(false);
   }, [setIsCameraActive]);
 
+  // Resilient start/stop logic for the camera stream
   useEffect(() => {
-    startCamera();
+    let active = true;
+    let localStream: MediaStream | null = null;
 
+    async function setupCamera() {
+      if (!isCameraActive) return;
+      setCameraError(null);
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode,
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              frameRate: { ideal: 30 }
+            },
+            audio: false
+          });
+
+          if (!active) {
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+          }
+
+          localStream = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            try {
+              await videoRef.current.play();
+            } catch (playErr) {
+              console.warn('Video play interrupted:', playErr);
+            }
+          }
+        } else {
+          setCameraError('مرورگر یا دستگاه شما دسترسی به دوربین را پشتیبانی نمی‌کند.');
+        }
+      } catch (err: unknown) {
+        console.warn('Camera access error:', err);
+        if (active) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          setCameraError(`خطا در دسترسی به دوربین: ${errMsg}. لطفا دسترسی‌ها را بررسی کنید.`);
+          setIsCameraActive(false);
+        }
+      }
+    }
+
+    setupCamera();
+
+    return () => {
+      active = false;
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    };
+  }, [facingMode, isCameraActive]);
+
+  // Separate effect to handle auto PiP triggers on visibility change
+  useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.hidden && videoRef.current && isCameraActive && document.pictureInPictureEnabled && !document.pictureInPictureElement) {
         try {
@@ -170,12 +229,10 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      stopCamera();
     };
-  }, [facingMode, isCameraActive, startCamera, stopCamera]);
+  }, [isCameraActive]);
 
   const lastStateUpdateRef = useRef<number>(0);
   const recentGesturesRef = useRef<GestureType[]>([]);
