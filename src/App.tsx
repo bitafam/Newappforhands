@@ -358,33 +358,35 @@ export default function App() {
               vibrationEnabled={config.vibrationEnabled}
               soundEnabled={soundEnabled}
             />
-
-            {/* Background Camera Tracker Frame */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="w-full md:w-64 h-36">
-                <CameraFeed
-                  config={config}
-                  onGestureDetected={handleGestureDetected}
-                  isCameraActive={isCameraActive}
-                  setIsCameraActive={setIsCameraActive}
-                  miniMode={true}
-                />
-              </div>
-
-              <div className="flex-1 space-y-1">
-                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  سنسور لایو پردازش مفاصل دست
-                  <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full font-mono font-bold">
-                    MediaPipe Vision API
-                  </span>
-                </h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  هنگامی که اینستاگرام را باز کنید، سنسور فوق مفاصل دست را رصد می‌کند. با بستن دست به شکل <strong>مشت (✊)</strong> عکس گرفته شده و با نزدیک کردن دو انگشت <strong>(🤏 پینچ)</strong> اسکرول انجام می‌شود.
-                </p>
-              </div>
-            </div>
           </div>
         )}
+
+        {/* ALWAYS MOUNTED CAMERA FEED (Hidden on unrelated tabs, styled on service/camera tabs) */}
+        <div className={activeTab === 'service' || activeTab === 'camera' ? 'block mt-6' : 'hidden'}>
+          <div className={activeTab === 'service' ? 'bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4' : ''}>
+            <div className={activeTab === 'service' ? 'w-full md:w-64 h-36' : 'w-full'}>
+              <CameraFeed
+                config={config}
+                onGestureDetected={handleGestureDetected}
+                isCameraActive={isCameraActive}
+                setIsCameraActive={setIsCameraActive}
+                miniMode={activeTab === 'service'}
+              />
+            </div>
+            
+            <div className={activeTab === 'service' ? 'flex-1 space-y-1 block' : 'hidden'}>
+              <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                سنسور لایو پردازش مفاصل دست
+                <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full font-mono font-bold">
+                  MediaPipe Vision API
+                </span>
+              </h4>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                هنگامی که اینستاگرام را باز کنید، سنسور فوق مفاصل دست را رصد می‌کند. با بستن دست به شکل <strong>مشت (✊)</strong> عکس گرفته شده و با نزدیک کردن دو انگشت <strong>(🤏 پینچ)</strong> اسکرول انجام می‌شود.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Tab 2: Android Permissions & Battery Bypass Setup */}
         {activeTab === 'permissions' && (
@@ -407,13 +409,9 @@ export default function App() {
 
         {/* Tab 4: Dedicated High-FPS Camera Viewfinder & Skeleton */}
         {activeTab === 'camera' && (
-          <CameraFeed
-            config={config}
-            onGestureDetected={handleGestureDetected}
-            isCameraActive={isCameraActive}
-            setIsCameraActive={setIsCameraActive}
-            miniMode={false}
-          />
+          <div className="hidden">
+            {/* The camera feed is physically mounted above in the DOM but displayed here visually */}
+          </div>
         )}
 
         {/* Tab 5: Captured Screenshots Gallery */}

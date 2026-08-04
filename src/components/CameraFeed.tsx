@@ -237,10 +237,16 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
     return maxGesture;
   };
 
+  const loopRefs = useRef({ config, onGestureDetected, isCameraActive });
+  useEffect(() => {
+    loopRefs.current = { config, onGestureDetected, isCameraActive };
+  }, [config, onGestureDetected, isCameraActive]);
+
   // Main Detection Loop
   const processFrame = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
+    const currentConfig = loopRefs.current.config;
 
     if (video && canvas && video.readyState >= 2) {
       const width = video.videoWidth || 640;
@@ -274,7 +280,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             if (results && results.landmarks && results.landmarks.length > 0) {
               const rawLm = results.landmarks[0];
               landmarks = rawLm.map((pt) => ({
-                x: config.mirrorCamera ? 1 - pt.x : pt.x,
+                x: currentConfig.mirrorCamera ? 1 - pt.x : pt.x,
                 y: pt.y,
                 z: pt.z
               }));
@@ -290,7 +296,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
         }
 
         if (landmarks.length >= 21) {
-          const gestureEval = detectHandGesture(landmarks, config);
+          const gestureEval = detectHandGesture(landmarks, currentConfig);
           const smoothedGesture = getSmoothedGesture(gestureEval.gesture);
 
           const detectionResult: HandDetectionResult = {
@@ -304,7 +310,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
           };
 
           // Always call gesture logic handler
-          onGestureDetected(detectionResult);
+          loopRefs.current.onGestureDetected(detectionResult);
 
           // Update UI state smoothly (~100ms or when gesture changes)
           const timeSinceLastUpdate = now - lastStateUpdateRef.current;
@@ -314,7 +320,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             setCurrentResult(detectionResult);
           }
 
-          if (config.showSkeleton) {
+          if (currentConfig.showSkeleton) {
             drawHandSkeleton(ctx, landmarks, width, height, smoothedGesture);
           }
         } else {
@@ -329,7 +335,7 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
             rawPinchDistance: 1
           };
 
-          onGestureDetected(emptyResult);
+          loopRefs.current.onGestureDetected(emptyResult);
 
           const timeSinceLastUpdate = now - lastStateUpdateRef.current;
           if (smoothedGesture !== lastSmoothedGestureRef.current || timeSinceLastUpdate > 100) {
@@ -341,13 +347,16 @@ export const CameraFeed: React.FC<CameraFeedProps> = ({
       }
     }
 
-    if (isCameraActive) {
+    if (loopRefs.current.isCameraActive) {
       animationFrameRef.current = requestAnimationFrame(processFrame);
     }
-  }, [config, isCameraActive, onGestureDetected]);
+  }, []); // Empty dependency array, relies on refs
 
   useEffect(() => {
     if (isCameraActive) {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
       animationFrameRef.current = requestAnimationFrame(processFrame);
     } else {
       if (animationFrameRef.current) {
